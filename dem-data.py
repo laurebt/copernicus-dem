@@ -18,6 +18,11 @@ from rasterio.merge import merge
 from rasterio.plot import show
 from rasterio.mask import mask
 from copy import deepcopy
+import time
+
+import pydaisi as pyd
+copernicus_dem_download = pyd.Daisi("laiglejm/Copernicus DEM download")
+copernicus_dem_download.workers.set(4)
 
 s3 = boto3.client('s3', region_name='eu-central-1', config=Config(signature_version=UNSIGNED))
 # s3.download_file(Bucket='copernicus-dem-30m', Key='tileList.txt', Filename='tileList_30.txt')
@@ -204,9 +209,11 @@ def st_ui():
     
     st.image(buf, use_column_width=False, caption='localization of DEM data')
     plt.close()
-
+    download_option = st.sidebar.selectbox("Parallel download", ["No", "Yes"])
     button = st.sidebar.button('Get list')
+
     if button:
+        start = time.time()
         shape = nations[nations[attributes_select]==country_selector]['geometry']
         print(shape)
         
@@ -217,6 +224,7 @@ def st_ui():
         src_files_to_mosaic = []
         mybar = st.progress(0)
         ii = 0
+        args_list = []
         # for index, row in pnt_FR.iterrows():
         for l in lats:
             for ll in lons:
@@ -232,21 +240,39 @@ def st_ui():
                     n = 'S'
                     multn = -1
                 try:
-                    file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution='90')
-                    src_files_to_mosaic.append(src)
-                    st.write(file)
+                    if download_option == "No":
+                        file, data, crs, transform = copernicus_dem_download.get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution='90').value
+                        src = create_dataset(data, crs, transform)
+                        src_files_to_mosaic.append(src)
+                        st.write(file)
+                    args_list.append({"lat": int(multn*int(l)), "n": n, "lon":int(multe*int(ll)), "e":e})
 
                 except:
                     st.write("Can't download")
                     continue
                 mybar.progress((ii+1)/(len(lats)*len(lons)))
                 ii += 1
+        if  download_option == "Yes":
+            dbe = copernicus_dem_download.map(func="get_from_lat_long", args_list=args_list)
+            dbe.start()
+            with st.spinner("Starting process"):
+                time.sleep(10)
+            
+            res = dbe.value
+            st.write(res)
+
+            
+            for key, val in res.items():
+                if val != "Can't download"
+                    src = create_dataset(val[1], val[2], val[3])
+                    src_files_to_mosaic.append(src)
         mosaic, out_trans = merge(src_files_to_mosaic)
         src = mosaic
 
         src_ds = create_dataset(src[0], src_files_to_mosaic[0].profile['crs'], out_trans)
         out_image, out_transform = mask(src_ds, shape, crop=True)
         out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
+        st.write(time.time() - start)
         buf = BytesIO()
         
         

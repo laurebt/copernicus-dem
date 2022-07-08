@@ -122,17 +122,21 @@ def get_from_lat_long(lat=8,n='N',lon=0, e='E', resolution='90'):
     print(file_name)
 
     tf = tempfile.NamedTemporaryFile()
+
+    try:
     
-    s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name)#, Filename=f'{name}.tif')
-    dataset= rasterio.open(tf.name)
+        s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name)#, Filename=f'{name}.tif')
+        dataset= rasterio.open(tf.name)
 
-    data = dataset.read()[0,:,:]
-    crs = dataset.profile['crs']
-    transform = dataset.profile['transform']
+        data = dataset.read()[0,:,:]
+        crs = dataset.profile['crs']
+        transform = dataset.profile['transform']
 
-    print(data, crs, transform)
+        print(data, crs, transform)
 
-    return file_name, data, crs, transform
+        return file_name, data, crs, transform
+    except:
+        return "Can't Download"
 
 
 def plt_locs(lon_plot, lat_plot, user_lon, user_lat):
