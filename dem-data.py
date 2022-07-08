@@ -21,6 +21,7 @@ from rasterio.mask import mask
 from copy import deepcopy
 import time
 import openpyxl
+import pygeos
 
 import pydaisi as pyd
 copernicus_dem_download = pyd.Daisi("laiglejm/Copernicus DEM download")
