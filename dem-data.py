@@ -1,3 +1,4 @@
+from math import remainder
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
@@ -253,19 +254,49 @@ def st_ui():
                 mybar.progress((ii+1)/(len(lats)*len(lons)))
                 ii += 1
         if  download_option == "Yes":
-            dbe = copernicus_dem_download.map(func="get_from_lat_long", args_list=args_list)
+            k = 0
+            chunk_size = 20
+            results = dict()
+            results["hjkhjk"] = None
+            chunks = len(args_list) // chunk_size
+            remainder = len(args_list) % chunk_size
+            for i in range((chunks)):
+                tt = time.time()
+                argg = args_list[k:k+chunk_size]
+                k += chunk_size
+                dbe = copernicus_dem_download.map(func="get_from_lat_long", args_list=argg)
+            
+                dbe.start()
+                with st.spinner("Starting process"):
+                    while None in dbe.value.values():
+                        time.sleep(1)
+                    none_nb = [1 for q in dbe.value.values() if q == None]
+                    st.write(len(none_nb))
+
+                res = dbe.value
+                st.write(time.time() - tt)
+                results = {**results, **res}
+            # st.write(res)
+            argg = args_list[k:k+remainder]
+
+            dbe = copernicus_dem_download.map(func="get_from_lat_long", args_list=argg)
+            
             dbe.start()
             with st.spinner("Starting process"):
-                time.sleep(10)
-            
-            res = dbe.value
-            st.write(res)
+                while None in dbe.value.values():
+                    time.sleep(1)
 
-            
-            for key, val in res.items():
-                if val != "Can't download"
+            res = dbe.value
+            # st.write(res)
+            results = {**results, **res}
+
+
+            for key, val in results.items():
+                try:
                     src = create_dataset(val[1], val[2], val[3])
                     src_files_to_mosaic.append(src)
+                except:
+                    continue
         mosaic, out_trans = merge(src_files_to_mosaic)
         src = mosaic
 
