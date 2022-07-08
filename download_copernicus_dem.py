@@ -126,7 +126,13 @@ def get_from_lat_long(lat=8,n='N',lon=0, e='E', resolution='90'):
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name)#, Filename=f'{name}.tif')
     dataset= rasterio.open(tf.name)
 
-    return file_name, dataset
+    data = dataset.read()[0,:,:]
+    crs = dataset.profile['crs']
+    transform = dataset.profile['transform']
+
+    print(data, crs, transform)
+
+    return file_name, data, crs, transform
 
 
 def plt_locs(lon_plot, lat_plot, user_lon, user_lat):
@@ -155,7 +161,8 @@ def st_ui():
     if button:
 
         try:
-            file, src = get_from_lat_long(lat=int(lat),n=n,lon=int(lon), e=e, resolution='90')
+            file,  data, crs, transform = get_from_lat_long(lat=int(lat),n=n,lon=int(lon), e=e, resolution='90')
+            src = create_dataset(data, crs, transform)
             print(src)
             buf =  BytesIO()
             plt.imshow(src.read()[0,:,:], cmap='pink')
