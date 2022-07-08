@@ -272,7 +272,7 @@ def st_ui():
                 tt = time.time()
                 argg = args_list[k:k+chunk_size]
                 k += chunk_size
-                dbe = copernicus_dem_download.map(func="get_from_lat_long", args_list=argg)
+                dbe = copernicus_dem_download.map(func="compute", args_list=argg)
             
                 dbe.start()
                 with st.spinner("Starting process"):
@@ -287,7 +287,7 @@ def st_ui():
             # st.write(res)
             argg = args_list[k:k+remainder]
 
-            dbe = copernicus_dem_download.map(func="get_from_lat_long", args_list=argg)
+            dbe = copernicus_dem_download.map(func="compute", args_list=argg)
             
             dbe.start()
             with st.spinner("Starting process"):

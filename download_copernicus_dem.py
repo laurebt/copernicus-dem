@@ -98,7 +98,7 @@ def get_dem_points_in_poly(lon, lat, features, attributes_select, country_select
 #     return all_listing
 
 
-def get_from_lat_long(lat=8,n='N',lon=0, e='E', resolution='90'):
+def compute(lat=8,n='N',lon=0, e='E', resolution='90'):
     
     lat_str = str(int(lat))
     for i in range(2-len(lat_str)):
