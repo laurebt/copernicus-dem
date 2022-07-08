@@ -20,6 +20,7 @@ from rasterio.plot import show
 from rasterio.mask import mask
 from copy import deepcopy
 import time
+import openpyxl
 
 import pydaisi as pyd
 copernicus_dem_download = pyd.Daisi("laiglejm/Copernicus DEM download")
