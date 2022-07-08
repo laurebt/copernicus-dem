@@ -292,7 +292,7 @@ def st_ui():
             # st.write(res)
             results = {**results, **res}
 
-
+            st.write(results)
             for key, val in results.items():
                 try:
                     src = create_dataset(val[1], val[2], val[3])
