@@ -68,7 +68,6 @@ def load_lat_lon():
 
 def get_dem_points_in_poly(lon, lat, features, attributes_select, country_selector):
     
-    need_to_expand = True
     df = pd.DataFrame({'lon':lon, 'lat':lat})
     df['coords'] = list(zip(df['lon'],df['lat']))
     df['coords'] = df['coords'].apply(Point)
@@ -80,18 +79,15 @@ def get_dem_points_in_poly(lon, lat, features, attributes_select, country_select
     print(len(pnt_FR))
     if len(pnt_FR) == 0:
         geom = features[features[attributes_select]==country_selector]['geometry']
-        print(geom.centroid)
-        # s = gpd.GeoSeries([geom])
 
-        # print(s.centroid)
         del pointInPolys, pnt_FR
-        pointInPolys = gpd.tools.sjoin_nearest(points,  gpd.GeoDataFrame(geometry=geom.centroid), how='left', distance_col="distances", max_distance = 1.0)
+        pointInPolys = gpd.tools.sjoin_nearest(points, gpd.GeoDataFrame(geometry=geom.centroid), how='left', distance_col="distances", max_distance = 1.0)
         print(pointInPolys)
-        pnt_FR = pointInPolys.dropna() #points[pointInPolys[attributes_select]==country_selector]
+        pnt_FR = pointInPolys.dropna() 
         print(pnt_FR)
-        need_to_expand = False
 
-    return points, pointInPolys, pnt_FR, need_to_expand
+
+    return points, pointInPolys, pnt_FR
 
 
 
@@ -170,7 +166,7 @@ def st_ui():
     
     country_selector = st.sidebar.selectbox(f'Select a {attributes_select}', sorted(countries_list))
 
-    points, pointInPolys, pnt_FR, need_to_expand = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features, attributes_select, country_selector)
+    points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features, attributes_select, country_selector)
     
    
     
@@ -187,12 +183,20 @@ def st_ui():
     plt.close()
 
     st.write(f"Found {len(pnt_FR)} rasters included in the area")
-    if need_to_expand:
-        offset=1
-    else:
-        offset=0
-    lats = list(range(np.min(pnt_FR['lat'].values)-offset, np.max(pnt_FR['lat'].values)+offset+1))
-    lons = list(range(np.min(pnt_FR['lon'].values)-offset, np.max(pnt_FR['lon'].values)+offset+1))
+
+    bounds =  features[features[attributes_select]==country_selector].bounds
+    print("Bounds", bounds)
+    offset_minx, offset_maxx, offset_miny, offset_maxy = 0,0,0,0
+    if bounds['minx'].values < np.min(pnt_FR['lon'].values):
+        offset_minx = 1
+    if bounds['maxx'].values > np.max(pnt_FR['lon'].values):
+        offset_maxx = 1
+    if bounds['miny'].values < np.min(pnt_FR['lat'].values):
+        offset_miny = 1
+    if bounds['maxy'].values > np.max(pnt_FR['lat'].values):
+        offset_maxy = 1
+    lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
+    lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
     pp = []
     for ll in lons:
         for l in lats:
@@ -217,8 +221,8 @@ def st_ui():
 
     if button:
         start = time.time()
-        shape = nations[nations[attributes_select]==country_selector]['geometry']
-        print(shape)
+        # shape = nations[nations[attributes_select]==country_selector]['geometry']
+        # print(shape)
         
         
 
@@ -244,10 +248,12 @@ def st_ui():
                     multn = -1
                 try:
                     if download_option == "No":
-                        file, data, crs, transform = copernicus_dem_download.get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution='90').value
-                        src = create_dataset(data, crs, transform)
+                        ttt = time.time()
+                        # file, data, crs, transform = copernicus_dem_download.get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution='90').value
+                        # src = create_dataset(data, crs, transform)
+                        file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution='90')
                         src_files_to_mosaic.append(src)
-                        st.write(file)
+                        st.write(file, time.time() - ttt)
                     args_list.append({"lat": int(multn*int(l)), "n": n, "lon":int(multe*int(ll)), "e":e})
 
                 except:
@@ -292,7 +298,7 @@ def st_ui():
             # st.write(res)
             results = {**results, **res}
 
-            st.write(results)
+            # st.write(results)
             for key, val in results.items():
                 try:
                     src = create_dataset(val[1], val[2], val[3])
