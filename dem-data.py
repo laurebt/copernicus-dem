@@ -262,7 +262,6 @@ def st_ui():
         else:
             shape = features['geometry']
 
-        
         buf = BytesIO()
         fig, ax = plt.subplots(figsize = (4,4))
         ax.plot(pp[:,0], pp[:,1], 'o')
