@@ -244,24 +244,29 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
         return base64.b64encode(buf)
 
     else:
-        out_file = tempfile.NamedTemporaryFile()
+        out_ds = create_dataset(out_image[0],crs, out_transform)
+        metadata = dict(**out_ds.profile)
+        metadata.update(crs=metadata["crs"].to_wkt(), transform=list(metadata["transform"]))
 
-        name = out_file.name + '.tiff'
+        out_data = out_image[0]
+        # out_file = tempfile.NamedTemporaryFile()
 
-        new_dataset = rasterio.open(name, 'w', driver='GTiff',
-                                    height=out_image[0].shape[0],
-                                    width=out_image[0].shape[1],
-                                    count=1,
-                                    dtype=out_image[0].dtype,
-                                    crs=crs,
-                                    transform=out_transform)
-        new_dataset.write(out_image[0], 1)
-        new_dataset.close()
+        # name = out_file.name + '.tiff'
 
-        with open(name, 'rb') as f:
-            to_return = f.read()
-        os.remove(name)
-        return to_return
+        # new_dataset = rasterio.open(name, 'w', driver='GTiff',
+        #                             height=out_image[0].shape[0],
+        #                             width=out_image[0].shape[1],
+        #                             count=1,
+        #                             dtype=out_image[0].dtype,
+        #                             crs=crs,
+        #                             transform=out_transform)
+        # new_dataset.write(out_image[0], 1)
+        # new_dataset.close()
+
+        # with open(name, 'rb') as f:
+        #     to_return = f.read()
+        # os.remove(name)
+        return out_data, metadata
 
 def st_ui():
     st.set_page_config(layout = "wide")
