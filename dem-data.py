@@ -233,7 +233,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
     # for s in src_files_to_mosaic:
     #     s.close()
-    
+
     if return_type == 'image':
         buf = BytesIO()
         data_top_plot = out_image[0,:,:]
@@ -261,7 +261,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
         with open(name, 'rb') as f:
             to_return = f.read()
-        
+        os.remove(name)
         return to_return
 
 def st_ui():
