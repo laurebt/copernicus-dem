@@ -244,29 +244,29 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
         return base64.b64encode(buf)
 
     else:
-        out_ds = create_dataset(out_image[0],crs, out_transform)
-        metadata = dict(**out_ds.profile)
-        metadata.update(crs=metadata["crs"].to_wkt(), transform=list(metadata["transform"]))
+        # out_ds = create_dataset(out_image[0],crs, out_transform)
+        # metadata = dict(**out_ds.profile)
+        # metadata.update(crs=metadata["crs"].to_wkt(), transform=list(metadata["transform"]))
 
-        out_data = out_image[0]
-        # out_file = tempfile.NamedTemporaryFile()
+        # out_data = out_image[0]
+        out_file = tempfile.NamedTemporaryFile()
 
-        # name = out_file.name + '.tiff'
+        name = out_file.name + '.tiff'
 
-        # new_dataset = rasterio.open(name, 'w', driver='GTiff',
-        #                             height=out_image[0].shape[0],
-        #                             width=out_image[0].shape[1],
-        #                             count=1,
-        #                             dtype=out_image[0].dtype,
-        #                             crs=crs,
-        #                             transform=out_transform)
-        # new_dataset.write(out_image[0], 1)
-        # new_dataset.close()
+        new_dataset = rasterio.open(name, 'w', driver='GTiff',
+                                    height=out_image[0].shape[0],
+                                    width=out_image[0].shape[1],
+                                    count=1,
+                                    dtype=out_image[0].dtype,
+                                    crs=crs,
+                                    transform=out_transform)
+        new_dataset.write(out_image[0], 1)
+        new_dataset.close()
 
-        # with open(name, 'rb') as f:
-        #     to_return = f.read()
-        # os.remove(name)
-        return out_data, metadata
+        with open(name, 'rb') as f:
+            to_return = f.read()
+        os.remove(name)
+        return to_return
 
 def st_ui():
     st.set_page_config(layout = "wide")
