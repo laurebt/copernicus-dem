@@ -216,10 +216,12 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     out_image, out_transform = mask(src_ds, shape, crop=True)
 
     src_ds.close()
-    for s in src_files_to_mosaic:
-        s.close()
+    
     # out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
     crs = src_files_to_mosaic[0].profile['crs']
+
+    for s in src_files_to_mosaic:
+        s.close()
 
     if return_type == 'image':
         buf = BytesIO()
