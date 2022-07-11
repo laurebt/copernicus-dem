@@ -213,12 +213,17 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                 continue
     print(src_files_to_mosaic)
     mosaic, out_trans = merge(src_files_to_mosaic)
-    dataset= rasterio.open(src_files_to_mosaic[0])
 
-    src_ds = create_dataset(mosaic[0],dataset.profile['crs'], out_trans)
-    out_image, out_transform = mask(src_ds, shape, crop=True)
+    print("Merge done")
+    
+    dataset= rasterio.open(src_files_to_mosaic[0])
     crs = dataset.profile['crs']
     dataset.close()
+
+    src_ds = create_dataset(mosaic[0],crs, out_trans)
+    out_image, out_transform = mask(src_ds, shape, crop=True)
+    
+    
 
     for s in src_files_to_mosaic:
         os.remove(s)
