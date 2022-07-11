@@ -187,7 +187,6 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
     lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
     
-
     src_files_to_mosaic = []
     args_list = []
     ii = 0
