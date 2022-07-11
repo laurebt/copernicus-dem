@@ -239,9 +239,11 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
         return base64.b64encode(buf)
 
     else:
-        tf = tempfile.NamedTemporaryFile()
+        out_file = tempfile.NamedTemporaryFile()
 
-        new_dataset = rasterio.open(tf.name, 'w', driver='GTiff',
+        name = out_file.name + '.tiff'
+
+        new_dataset = rasterio.open(name, 'w', driver='GTiff',
                                     height=out_image[0].shape[0],
                                     width=out_image[0].shape[1],
                                     count=1,
@@ -250,13 +252,11 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                                     transform=out_transform)
         new_dataset.write(out_image[0], 1)
         new_dataset.close()
-        print(tf.name + '.tiff')
 
-        with open(tf.name, 'rb') as f:
+        with open(name, 'rb') as f:
             to_return = f.read()
         
         return to_return
-
 
 def st_ui():
     st.set_page_config(layout = "wide")
@@ -270,10 +270,7 @@ def st_ui():
     if res == "30m":
         resolution = '30'
     
-    
-    
     lon_plot, lat_plot = load_lat_lon()
-
 
     shp_input_select = st.sidebar.radio("Shapefile selection", ('Use a pre loaded shapefile', 'Bring your own data (Geojson)'))
     if shp_input_select == "Use a pre loaded shapefile":
