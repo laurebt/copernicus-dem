@@ -204,8 +204,8 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                 src_files_to_mosaic.append(src)
                 print(ii, "Dowloaded")
                 ii +=1
-            except:
-                
+            except Exception as e:
+                print(e)
                 print(ii, "Couldn't download")
                 ii+=1
                 continue
