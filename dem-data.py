@@ -25,6 +25,7 @@ import openpyxl
 import pygeos
 import pickle
 from matplotlib.backends.backend_agg import RendererAgg
+import base64
 _lock = RendererAgg.lock
 
 # import pydaisi as pyd
@@ -34,7 +35,10 @@ _lock = RendererAgg.lock
 s3 = boto3.client('s3', region_name='eu-central-1', config=Config(signature_version=UNSIGNED))
 # s3.download_file(Bucket='copernicus-dem-30m', Key='tileList.txt', Filename='tileList_30.txt')
 # s3_paginator = boto3.client('s3', region_name='eu-central-1', config=Config(signature_version=UNSIGNED)).get_paginator('list_objects_v2')
-
+shapefiles_dict = {'World countries' : {'src':'data/World_Countries_Generalized/World_Countries__Generalized_.shp', 'main attribute':'COUNTRY', 'Attribute display':'Country'},
+                        'US States' : {'src':'data/cb_2018_us_state_5m/cb_2018_us_state_5m.shp', 'main attribute':'NAME', 'Attribute display':'State'},
+                        'US counties' : {'src':'data/cb_2018_us_county_20m/cb_2018_us_county_20m.shp', 'main attribute':'NAME', 'Attribute display':'County'},
+                        'World sedimentary basins' : {'src':'data/Basins_classified_by_sub_regime_Robertson_Basins_and_Plays/Basins classified by sub regime Robertson Basins and Plays.shp', 'main attribute':'BASIN_NAME', 'Attribute display':'Basin'}}
 from rasterio.io import MemoryFile
 
 def create_dataset(data, crs, transform):
@@ -139,7 +143,7 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
         bucket = 'copernicus-dem-30m'
 
     file_name = f'{name}/{name}.tif'
-
+    print(file_name)
     tf = tempfile.NamedTemporaryFile()
     
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name)#, Filename=f'{name}.tif')
@@ -157,8 +161,90 @@ def plt_locs(lon_plot, lat_plot, user_lon, user_lat):
 
     return fig
 
-def retrieve_dem(polygon):
-    pass
+def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'Andorra'], resolution = '90', return_type = 'image'):
+    lon_plot, lat_plot = load_lat_lon()
+    if user_polygon is not None:
+        pass
+    else:
+    
+        features = gpd.read_file(shapefiles_dict[pre_defined_shape[0]]['src'])
+        attributes_select = shapefiles_dict[pre_defined_shape[0]]['main attribute']
+        ft_selector = pre_defined_shape[1]
+        features = features.to_crs('epsg:4326')
+        shape = features[features[attributes_select]==ft_selector]['geometry']
+
+        bounds =  features[features[attributes_select]==ft_selector].bounds
+    points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features, attributes_select, ft_selector)
+    offset_minx, offset_maxx, offset_miny, offset_maxy = 0,0,0,0
+    if bounds['minx'].values < np.min(pnt_FR['lon'].values):
+        offset_minx = 1
+    if bounds['maxx'].values > np.max(pnt_FR['lon'].values):
+        offset_maxx = 1
+    if bounds['miny'].values < np.min(pnt_FR['lat'].values):
+        offset_miny = 1
+    if bounds['maxy'].values > np.max(pnt_FR['lat'].values):
+        offset_maxy = 1
+    lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
+    lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
+    
+
+    src_files_to_mosaic = []
+    args_list = []
+    ii = 0
+    print(f"Will retrieve tentatively {len(lats)*len(lons)} rasters.")
+    for l in lats:
+        for ll in lons:
+            multe, multn, e, n = 1, 1, 'E', 'N'
+
+            if int(ll) < 0: e, multe = 'W', -1
+            if int(l) < 0: n, multn = 'S', -1
+            print(l, ll, multe, multn, e, n)
+            try:
+                file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
+                src_files_to_mosaic.append(src)
+                print(ii, "Dowloaded")
+                ii +=1
+            except:
+                
+                print(ii, "Couldn't download")
+                ii+=1
+                continue
+            
+    
+    mosaic, out_trans = merge(src_files_to_mosaic)
+
+    src_ds = create_dataset(mosaic[0], src_files_to_mosaic[0].profile['crs'], out_trans)
+    out_image, out_transform = mask(src_ds, shape, crop=True)
+    out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
+
+    if return_type == 'image':
+        buf = BytesIO()
+        data_top_plot = out_image[0,:,:]
+        data_top_plot[data_top_plot == 0] = np.nan
+        plt.imshow(data_top_plot, cmap='pink', aspect='equal')
+        plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
+        plt.close()
+
+        return base64.b64encode(buf)
+
+    else:
+        tf = tempfile.NamedTemporaryFile()
+
+        new_dataset = rasterio.open(tf.name, 'w', driver='GTiff',
+                                    height=out_image[0].shape[0],
+                                    width=out_image[0].shape[1],
+                                    count=1,
+                                    dtype=out_image[0].dtype,
+                                    crs=out_dataset.profile['crs'],
+                                    transform=out_transform)
+        new_dataset.write(out_image[0], 1)
+        new_dataset.close()
+        print(tf.name + '.tiff')
+
+        with open(tf.name, 'rb') as f:
+            to_return = f.read()
+        
+        return to_return
 
 
 def st_ui():
@@ -173,10 +259,7 @@ def st_ui():
     if res == "30m":
         resolution = '30'
     
-    shapefiles_dict = {'World countries' : {'src':'data/World_Countries_Generalized/World_Countries__Generalized_.shp', 'main attribute':'COUNTRY', 'Attribute display':'Country'},
-                        'US States' : {'src':'data/cb_2018_us_state_5m/cb_2018_us_state_5m.shp', 'main attribute':'NAME', 'Attribute display':'State'},
-                        'US counties' : {'src':'data/cb_2018_us_county_20m/cb_2018_us_county_20m.shp', 'main attribute':'NAME', 'Attribute display':'County'},
-                        'World sedimentary basins' : {'src':'data/Basins_classified_by_sub_regime_Robertson_Basins_and_Plays/Basins classified by sub regime Robertson Basins and Plays.shp', 'main attribute':'BASIN_NAME', 'Attribute display':'Basin'}}
+    
     
     lon_plot, lat_plot = load_lat_lon()
 
@@ -432,7 +515,10 @@ def st_ui():
 
 
 if __name__ == "__main__":
-    st_ui()
+    # st_ui()
+    out = retrieve_dem(pre_defined_shape = ['World countries', 'Andorra'], return_type = 'dem')
+    print(out)
+    # print(base64.b64encode(out))
 
 
 
