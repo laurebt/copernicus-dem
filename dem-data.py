@@ -215,7 +215,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     src_ds = create_dataset(mosaic[0], src_files_to_mosaic[0].profile['crs'], out_trans)
     out_image, out_transform = mask(src_ds, shape, crop=True)
 
-    src_ds.close()
+    # src_ds.close()
     
     # out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
     crs = src_files_to_mosaic[0].profile['crs']
