@@ -223,7 +223,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     src_ds = create_dataset(mosaic[0],crs, out_trans)
     out_image, out_transform = mask(src_ds, shape, crop=True)
     
-    
+    print("Cropping done")
 
     for s in src_files_to_mosaic:
         os.remove(s)
@@ -233,6 +233,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
     # for s in src_files_to_mosaic:
     #     s.close()
+    
     if return_type == 'image':
         buf = BytesIO()
         data_top_plot = out_image[0,:,:]
