@@ -147,9 +147,9 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
     tf = tempfile.NamedTemporaryFile()
     
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name)#, Filename=f'{name}.tif')
-    dataset= rasterio.open(tf.name)
+    # dataset= rasterio.open(tf.name)
 
-    return name + '.tif', dataset
+    return name + '.tif', tf.name
 
 
 def plt_locs(lon_plot, lat_plot, user_lon, user_lat):
@@ -219,8 +219,8 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     # out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
     crs = src_files_to_mosaic[0].profile['crs']
 
-    for s in src_files_to_mosaic:
-        s.close()
+    # for s in src_files_to_mosaic:
+    #     s.close()
 
     if return_type == 'image':
         buf = BytesIO()
