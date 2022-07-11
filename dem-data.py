@@ -210,12 +210,16 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                 ii+=1
                 continue
             
-    
     mosaic, out_trans = merge(src_files_to_mosaic)
 
     src_ds = create_dataset(mosaic[0], src_files_to_mosaic[0].profile['crs'], out_trans)
     out_image, out_transform = mask(src_ds, shape, crop=True)
-    out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
+
+    src_ds.close()
+    for s in src_files_to_mosaic:
+        s.close()
+    # out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
+    crs = src_files_to_mosaic[0].profile['crs']
 
     if return_type == 'image':
         buf = BytesIO()
@@ -235,7 +239,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                                     width=out_image[0].shape[1],
                                     count=1,
                                     dtype=out_image[0].dtype,
-                                    crs=out_dataset.profile['crs'],
+                                    crs=crs,
                                     transform=out_transform)
         new_dataset.write(out_image[0], 1)
         new_dataset.close()
