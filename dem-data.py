@@ -26,6 +26,8 @@ import pygeos
 import pickle
 from matplotlib.backends.backend_agg import RendererAgg
 import base64
+import os
+
 _lock = RendererAgg.lock
 
 # import pydaisi as pyd
@@ -146,10 +148,11 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
     print(file_name)
     tf = tempfile.NamedTemporaryFile()
     
-    s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name)#, Filename=f'{name}.tif')
+    s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name  + '.tiff') #, Filename=f'{name}.tif')
     # dataset= rasterio.open(tf.name)
+    print(tf.name)
 
-    return name + '.tif', tf.name
+    return name + '.tif', tf.name + '.tiff'
 
 
 def plt_locs(lon_plot, lat_plot, user_lon, user_lat):
@@ -208,16 +211,20 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                 print(ii, "Couldn't download")
                 ii+=1
                 continue
-            
+    print(src_files_to_mosaic)
     mosaic, out_trans = merge(src_files_to_mosaic)
+    dataset= rasterio.open(src_files_to_mosaic[0])
 
-    src_ds = create_dataset(mosaic[0], src_files_to_mosaic[0].profile['crs'], out_trans)
+    src_ds = create_dataset(mosaic[0],dataset.profile['crs'], out_trans)
     out_image, out_transform = mask(src_ds, shape, crop=True)
+    crs = dataset.profile['crs']
+    dataset.close()
 
-    # src_ds.close()
+    for s in src_files_to_mosaic:
+        os.remove(s)
     
     # out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
-    crs = src_files_to_mosaic[0].profile['crs']
+    # crs = src_files_to_mosaic[0].profile['crs']
 
     # for s in src_files_to_mosaic:
     #     s.close()
