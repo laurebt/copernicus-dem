@@ -75,7 +75,6 @@ def load_lat_lon():
     
     return lon_plot, lat_plot
 
-
 def get_dem_points_in_poly(lon, lat, features, attributes_select=None, ft_selector=None):
     
     df = pd.DataFrame({'lon':lon, 'lat':lat})
