@@ -243,7 +243,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
         name = out_file.name + '.tiff'
 
-        new_dataset = rasterio.open(name, 'w', driver='GeoTiff',
+        new_dataset = rasterio.open(name, 'w', driver='GTiff',
                                     height=out_image[0].shape[0],
                                     width=out_image[0].shape[1],
                                     count=1,
