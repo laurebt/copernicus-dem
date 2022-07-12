@@ -530,9 +530,9 @@ def st_ui():
 
 
 if __name__ == "__main__":
-    # st_ui()
-    out = retrieve_dem(pre_defined_shape = ['World countries', 'Andorra'], return_type = 'dem')
-    print(out)
+    st_ui()
+    # out = retrieve_dem(pre_defined_shape = ['World countries', 'Andorra'], return_type = 'dem')
+    # print(out)
     # print(base64.b64encode(out))
 
 
