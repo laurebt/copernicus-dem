@@ -477,11 +477,14 @@ def st_ui():
             
             with st.spinner("Rendering"):
                 mosaic, out_trans = merge(src_files_to_mosaic)
+                dataset= rasterio.open(src_files_to_mosaic[0])
+                crs = dataset.profile['crs']
+                dataset.close()
                 src = mosaic
             
-                src_ds = create_dataset(src[0], src_files_to_mosaic[0].profile['crs'], out_trans)
+                src_ds = create_dataset(src[0],crs, out_trans)
                 out_image, out_transform = mask(src_ds, shape, crop=True)
-                out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
+                out_dataset = create_dataset(out_image[0], crs, out_transform)
 
             st.write(time.time() - start)
 
