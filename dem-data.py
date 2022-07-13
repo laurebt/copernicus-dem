@@ -31,7 +31,7 @@ import pydaisi
 os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
 sd = SharedDataClient()
-
+folder = sd.Folder("/")
 
 
 
