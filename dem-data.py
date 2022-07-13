@@ -29,7 +29,8 @@ import base64
 import os
 from pydaisi import SharedDataClient
 sd = SharedDataClient()
-
+import os
+os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 
 
 
