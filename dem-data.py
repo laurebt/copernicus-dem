@@ -27,6 +27,11 @@ import pickle
 from matplotlib.backends.backend_agg import RendererAgg
 import base64
 import os
+from pydaisi import SharedDataClient
+sd = SharedDataClient()
+
+
+
 
 _lock = RendererAgg.lock
 
@@ -265,8 +270,9 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
         with open(name, 'rb') as f:
             to_return = f.read()
+        sd.put_object("/shared data/JM/DEM", to_return, "test.tiff")
         os.remove(name)
-        return to_return
+        return "Your file can be downloaded here : https://app.daisi.io/shared-data"
 
 def st_ui():
     st.set_page_config(layout = "wide")
