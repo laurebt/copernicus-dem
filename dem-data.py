@@ -163,8 +163,6 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
     tf = tempfile.NamedTemporaryFile()
     
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name  + '.tiff') #, Filename=f'{name}.tif')
-    # dataset= rasterio.open(tf.name)
-    # print(tf.name)
 
     return name + '.tif', tf.name + '.tiff'
 
@@ -352,7 +350,6 @@ def st_ui():
                     attributes_select = None
                     ft_selector = None
         
-        print("FEATURES", features)
         points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features, attributes_select, ft_selector)
         if attributes_select is not None:
                 bounds =  features[features[attributes_select]==ft_selector].bounds
@@ -388,40 +385,40 @@ def st_ui():
             st.subheader(f"Copernicus DEM tiles localization around {ft_selector}")
         else:
             st.subheader(f"Copernicus DEM tiles localization around your data")
-        with col1:
-            with _lock:
-                fig, ax2 = plt.subplots()
 
-                if attributes_select is not None:
-                    shape = features[features[attributes_select]==ft_selector]['geometry']
-                else:
-                    shape = features['geometry']
+        st.markdown(get_summary([shapes_select, ft_selector]))
+        with _lock:
+            fig, ax2 = plt.subplots()
 
-                buf = BytesIO()
-                ax2.plot(ppp_to_keep[:,0], ppp_to_keep[:,1], 'o', c = '#82C3F8')
-                ax2.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o', c = '#ED239D', mec = 'white')
-                if shapes_select != 'World countries' :
-                    world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-                    world.plot(ax=ax2, zorder=1, color ="#292A2E", alpha = 0.2)
-                features.plot(ax = ax2, linewidth=0.1, edgecolor = 'white', color="#292A2E", aspect = None, alpha = 1.0)
-                shape.plot(ax=ax2, color="#82C341")
-                if shapes_select == 'custom':
-                    fov = 1
-                else:
-                    fov = 3
-                xlim = ([bounds['minx'].values -fov, bounds['maxx'].values +fov])
-                ylim = ([bounds['miny'].values -fov, bounds['maxy'].values +fov])
+            if attributes_select is not None:
+                shape = features[features[attributes_select]==ft_selector]['geometry']
+            else:
+                shape = features['geometry']
 
-                ax2.set_xlim(xlim)
-                ax2.set_ylim(ylim)
-                # ax2.set_aspect('auto')
-                plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
-                
-                st.image(buf, use_column_width=False, caption='localization of DEM data')
-                plt.close()
+            buf = BytesIO()
+            ax2.plot(ppp_to_keep[:,0], ppp_to_keep[:,1], 'o', c = '#82C3F8')
+            ax2.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o', c = '#ED239D', mec = 'white')
+            if shapes_select != 'World countries' :
+                world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+                world.plot(ax=ax2, zorder=1, color ="#292A2E", alpha = 0.2)
+            features.plot(ax = ax2, linewidth=0.1, edgecolor = 'white', color="#292A2E", aspect = None, alpha = 1.0)
+            shape.plot(ax=ax2, color="#82C341")
+            if shapes_select == 'custom':
+                fov = 1
+            else:
+                fov = 3
+            xlim = ([bounds['minx'].values -fov, bounds['maxx'].values +fov])
+            ylim = ([bounds['miny'].values -fov, bounds['maxy'].values +fov])
+
+            ax2.set_xlim(xlim)
+            ax2.set_ylim(ylim)
+            # ax2.set_aspect('auto')
+            plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
+            
+            st.image(buf, use_column_width=False, caption='localization of DEM data')
+            plt.close()
         
-        with col2:
-            st.markdown(get_summary([shapes_select, ft_selector]))
+            
 
         nb_raster = len(lats)*len(lons)
         
@@ -495,7 +492,7 @@ def st_ui():
             
             st.sidebar.download_button(label="Download this DEM", data=to_return, file_name='my_DEM.tif')
     except Exception as e:
-        # st.write(e)
+        st.write(e)
         points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features=None, attributes_select=None, ft_selector=None)
         fig, ax = plt.subplots()
         points.plot(ax=ax, linewidth=1, color="blue", markersize=0.01)
