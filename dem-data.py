@@ -27,10 +27,11 @@ import pickle
 from matplotlib.backends.backend_agg import RendererAgg
 import base64
 import os
+import pydaisi
+os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
 sd = SharedDataClient()
-import os
-os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
+
 
 
 
