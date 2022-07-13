@@ -337,7 +337,10 @@ def st_ui():
             attributes_select = shapefiles_dict[shapes_select]['main attribute']
             ft_list =list(set(features[attributes_select].values))
             display_name = shapefiles_dict[shapes_select]['Attribute display']
-            ft_selector = st.sidebar.selectbox(f'Select a {display_name}', sorted(ft_list))
+            if shapes_select == 'World countries' :
+                ft_selector = st.sidebar.selectbox(f'Select a {display_name}', sorted(ft_list), 13)
+            else:
+                ft_selector = st.sidebar.selectbox(f'Select a {display_name}', sorted(ft_list))
         else:
             if attributes != 'geometry':
                 try:
