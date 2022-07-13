@@ -29,6 +29,7 @@ import base64
 import os
 import uuid
 import pydaisi
+from summary import get_summary
 
 os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
@@ -387,37 +388,40 @@ def st_ui():
             st.subheader(f"Copernicus DEM tiles localization around {ft_selector}")
         else:
             st.subheader(f"Copernicus DEM tiles localization around your data")
+        with col1:
+            with _lock:
+                fig, ax2 = plt.subplots()
 
-        with _lock:
-            fig, ax2 = plt.subplots()
+                if attributes_select is not None:
+                    shape = features[features[attributes_select]==ft_selector]['geometry']
+                else:
+                    shape = features['geometry']
 
-            if attributes_select is not None:
-                shape = features[features[attributes_select]==ft_selector]['geometry']
-            else:
-                shape = features['geometry']
+                buf = BytesIO()
+                ax2.plot(ppp_to_keep[:,0], ppp_to_keep[:,1], 'o', c = '#82C3F8')
+                ax2.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o', c = '#ED239D', mec = 'white')
+                if shapes_select != 'World countries' :
+                    world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+                    world.plot(ax=ax2, zorder=1, color ="#292A2E", alpha = 0.2)
+                features.plot(ax = ax2, linewidth=0.1, edgecolor = 'white', color="#292A2E", aspect = None, alpha = 1.0)
+                shape.plot(ax=ax2, color="#82C341")
+                if shapes_select == 'custom':
+                    fov = 1
+                else:
+                    fov = 3
+                xlim = ([bounds['minx'].values -fov, bounds['maxx'].values +fov])
+                ylim = ([bounds['miny'].values -fov, bounds['maxy'].values +fov])
 
-            buf = BytesIO()
-            ax2.plot(ppp_to_keep[:,0], ppp_to_keep[:,1], 'o', c = '#82C3F8')
-            ax2.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o', c = '#ED239D', mec = 'white')
-            if shapes_select != 'World countries' :
-                world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-                world.plot(ax=ax2, zorder=1, color ="#292A2E", alpha = 0.2)
-            features.plot(ax = ax2, linewidth=0.1, edgecolor = 'white', color="#292A2E", aspect = None, alpha = 1.0)
-            shape.plot(ax=ax2, color="#82C341")
-            if shapes_select == 'custom':
-                fov = 1
-            else:
-                fov = 3
-            xlim = ([bounds['minx'].values -fov, bounds['maxx'].values +fov])
-            ylim = ([bounds['miny'].values -fov, bounds['maxy'].values +fov])
-
-            ax2.set_xlim(xlim)
-            ax2.set_ylim(ylim)
-            # ax2.set_aspect('auto')
-            plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
-            
-            st.image(buf, use_column_width=False, caption='localization of DEM data')
-            plt.close()
+                ax2.set_xlim(xlim)
+                ax2.set_ylim(ylim)
+                # ax2.set_aspect('auto')
+                plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
+                
+                st.image(buf, use_column_width=False, caption='localization of DEM data')
+                plt.close()
+        
+        with col2:
+            st.markdown(get_summary([shapes_select, ft_selector]))
 
         nb_raster = len(lats)*len(lons)
         
