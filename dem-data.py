@@ -350,32 +350,43 @@ def st_ui():
         
         print("FEATURES", features)
         points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features, attributes_select, ft_selector)
+        if attributes_select is not None:
+                bounds =  features[features[attributes_select]==ft_selector].bounds
+        else:
+            bounds =  features.bounds
         
+        offset_minx, offset_maxx, offset_miny, offset_maxy = 0,0,0,0
+        if bounds['minx'].values < np.min(pnt_FR['lon'].values):
+            offset_minx = 1
+        if bounds['maxx'].values > np.max(pnt_FR['lon'].values):
+            offset_maxx = 1
+        if bounds['miny'].values < np.min(pnt_FR['lat'].values):
+            offset_miny = 1
+        if bounds['maxy'].values > np.max(pnt_FR['lat'].values):
+            offset_maxy = 1
+        lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
+        lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
+        pp = []
+        for ll in lons:
+            for l in lats:
+                pp.append([ll,l])
+
+        pp = np.array(pp)
+        ppp_to_keep = []
+        latlon = [[u, v] for u,v in zip(lon_plot, lat_plot) ]
+        # print(latlon)
+        for i in range(pp.shape[0]):
+            d = [pp[i, 0], pp[i, 1]]
+            if list(d) in latlon:
+                ppp_to_keep.append(d)
+        ppp_to_keep = np.array(ppp_to_keep)
+        if ft_selector is not None:
+            st.subheader(f"Copernicus DEM tiles localization around {ft_selector}")
+        else:
+            st.subheader(f"Copernicus DEM tiles localization around your data")
+
         with _lock:
             fig, ax2 = plt.subplots()
-
-            if attributes_select is not None:
-                bounds =  features[features[attributes_select]==ft_selector].bounds
-            else:
-                bounds =  features.bounds
-            
-            offset_minx, offset_maxx, offset_miny, offset_maxy = 0,0,0,0
-            if bounds['minx'].values < np.min(pnt_FR['lon'].values):
-                offset_minx = 1
-            if bounds['maxx'].values > np.max(pnt_FR['lon'].values):
-                offset_maxx = 1
-            if bounds['miny'].values < np.min(pnt_FR['lat'].values):
-                offset_miny = 1
-            if bounds['maxy'].values > np.max(pnt_FR['lat'].values):
-                offset_maxy = 1
-            lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
-            lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
-            pp = []
-            for ll in lons:
-                for l in lats:
-                    pp.append([ll,l])
-
-            pp = np.array(pp)
 
             if attributes_select is not None:
                 shape = features[features[attributes_select]==ft_selector]['geometry']
@@ -383,7 +394,7 @@ def st_ui():
                 shape = features['geometry']
 
             buf = BytesIO()
-            ax2.plot(pp[:,0], pp[:,1], 'o', c = '#82C3F8')
+            ax2.plot(ppp_to_keep[:,0], ppp_to_keep[:,1], 'o', c = '#82C3F8')
             ax2.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o', c = '#ED239D', mec = 'white')
             if shapes_select != 'World countries' :
                 world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
@@ -399,6 +410,7 @@ def st_ui():
 
             ax2.set_xlim(xlim)
             ax2.set_ylim(ylim)
+            # ax2.set_aspect('auto')
             plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
             
             st.image(buf, use_column_width=False, caption='localization of DEM data')
@@ -406,9 +418,9 @@ def st_ui():
 
         nb_raster = len(lats)*len(lons)
         
-        download_size = nb_raster * 5.2
+        download_size = round(nb_raster * 5.2)
         if resolution == '30':
-            download_size = nb_raster * 37.5
+            download_size = round(nb_raster * 37.5)
         st.sidebar.write(f"Will retrieve tentatively {len(lats)*len(lons)} rasters. Estimated size : {download_size}Mb")
         if ft_selector is not None:
             button = st.sidebar.button(f'Render DEM for {ft_selector}')
@@ -435,7 +447,7 @@ def st_ui():
                     except:
                         ii += 1
                         continue
-                    mybar.progress((ii+1)/(len(lats)*len(lons)))
+                    mybar.progress((ii)/(len(lats)*len(lons)))
             
             with st.spinner("Rendering"):
                 mosaic, out_trans = merge(src_files_to_mosaic)
@@ -475,7 +487,8 @@ def st_ui():
                 to_return = f.read()
             
             st.sidebar.download_button(label="Download this DEM", data=to_return, file_name='my_DEM.tif')
-    except:
+    except Exception as e:
+        # st.write(e)
         points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features=None, attributes_select=None, ft_selector=None)
         fig, ax = plt.subplots()
         points.plot(ax=ax, linewidth=1, color="blue", markersize=0.01)
