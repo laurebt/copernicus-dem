@@ -154,7 +154,7 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
         bucket = 'copernicus-dem-30m'
 
     file_name = f'{name}/{name}.tif'
-    # print(file_name)
+    print(f"Downloading tile : {name}")
     tf = tempfile.NamedTemporaryFile()
     
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name  + '.tiff') #, Filename=f'{name}.tif')
@@ -227,13 +227,13 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
             try:
                 file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
                 src_files_to_mosaic.append(src)
-                print(ii, f"Downloading tile : {file}")
+                # print(ii, f"Downloading tile : {file}")
                 ii += 1
 
                 
             except Exception as e:
                 # print(e)
-                print(ii, f"Couldn't download tile {file}. File doesn't exist (probably an offshore area)")
+                # print(ii, f"Couldn't download tile {file}. File doesn't exist (probably an offshore area)")
                 ii += 1
                 continue
 
