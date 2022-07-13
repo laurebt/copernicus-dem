@@ -92,6 +92,8 @@ def get_dem_points_in_poly(lon, lat, features, attributes_select=None, ft_select
     df['coords'] = df['coords'].apply(Point)
     points = gpd.GeoDataFrame(df, geometry='coords', crs='epsg:4026')
     p = deepcopy(points)
+    pointInPolys, pnt_FR = None, None
+
     if features is not None:
         pointInPolys = gpd.tools.sjoin(p, features, op="within", how='left')
         
@@ -107,6 +109,7 @@ def get_dem_points_in_poly(lon, lat, features, attributes_select=None, ft_select
                 pnt_FR = pointInPolys.dropna() 
                 print(pnt_FR)
         else:
+            print(pointInPolys.dropna())
             if len(pointInPolys.dropna() ) == 0:
                 geom = features['geometry']
 
@@ -114,8 +117,9 @@ def get_dem_points_in_poly(lon, lat, features, attributes_select=None, ft_select
                 print(pointInPolys)
                 pnt_FR = pointInPolys.dropna() 
                 print(pnt_FR)
-    else:
-        pointInPolys, pnt_FR = None, None
+            else:
+                pnt_FR = pointInPolys.dropna() 
+
 
 
     return points, pointInPolys, pnt_FR
@@ -186,10 +190,20 @@ def get_entities_names(shp):
     return features[attributes_select].values
 
 
-def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'Andorra'], resolution = '90', return_type = 'image'):
+def retrieve_dem(user_polygon = None, attributes_select = None, pre_defined_shape = ['World countries', 'Andorra'], resolution = '90', return_type = 'image'):
     lon_plot, lat_plot = load_lat_lon()
     if user_polygon is not None:
-        pass
+        features = user_polygon
+        features = features.to_crs('epsg:4326')
+
+        attributes = features.columns.values.tolist()
+        if attributes != 'geometry':
+            try:
+                ft_list =list(set(features[attributes_select].values))
+                ft_selector = st.sidebar.selectbox(f'Select a {attributes_select}', sorted(ft_list))
+            except:
+                attributes_select = None
+                ft_selector = None
     else:
     
         features = gpd.read_file(shapefiles_dict[pre_defined_shape[0]]['src'])
@@ -223,7 +237,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
             if int(ll) < 0: e, multe = 'W', -1
             if int(l) < 0: n, multn = 'S', -1
-            print(l, ll, multe, multn, e, n)
+            # print(l, ll, multe, multn, e, n)
             try:
                 file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
                 src_files_to_mosaic.append(src)
@@ -311,12 +325,14 @@ def st_ui():
     elif shp_input_select == "Bring your own data (Geojson)":
         st.sidebar.markdown('''*It is easy to draw a polygon on [Geojson.io](http://geojson.io)*''')
         user_shp = st.sidebar.file_uploader("Upload a Geojson file")
+        shapes_select = 'custom'
         if user_shp is not None:
             features = gpd.GeoDataFrame.from_file(user_shp)
             features = features.to_crs('epsg:4326')
+            
     try:
         attributes = features.columns.values.tolist()
-        print(attributes)
+
         if shp_input_select == "Use a pre loaded shapefile":
             attributes_select = shapefiles_dict[shapes_select]['main attribute']
             ft_list =list(set(features[attributes_select].values))
@@ -332,75 +348,61 @@ def st_ui():
                     attributes_select = None
                     ft_selector = None
         
-
+        print("FEATURES", features)
         points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features, attributes_select, ft_selector)
         
-        bnds_shp = features.bounds
-        minx = np.min(bnds_shp['minx'].values)
-        maxx = np.max(bnds_shp['maxx'].values)
-        miny = np.min(bnds_shp['miny'].values)
-        maxy = np.max(bnds_shp['maxy'].values)
+        with _lock:
+            fig, ax2 = plt.subplots()
 
-        base = features.boundary.plot(linewidth=0.1, edgecolor="black", figsize = (12,8), aspect = None)
-        points.plot(ax=base, linewidth=1, color="blue", markersize=0.01)
-        pnt_FR.plot(ax=base, linewidth=1, color="red", markersize=0.5)
+            if attributes_select is not None:
+                bounds =  features[features[attributes_select]==ft_selector].bounds
+            else:
+                bounds =  features.bounds
+            
+            offset_minx, offset_maxx, offset_miny, offset_maxy = 0,0,0,0
+            if bounds['minx'].values < np.min(pnt_FR['lon'].values):
+                offset_minx = 1
+            if bounds['maxx'].values > np.max(pnt_FR['lon'].values):
+                offset_maxx = 1
+            if bounds['miny'].values < np.min(pnt_FR['lat'].values):
+                offset_miny = 1
+            if bounds['maxy'].values > np.max(pnt_FR['lat'].values):
+                offset_maxy = 1
+            lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
+            lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
+            pp = []
+            for ll in lons:
+                for l in lats:
+                    pp.append([ll,l])
 
-        with col1:
-            with _lock:
-                buf = BytesIO()
-                plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
-                
-                st.image(buf, use_column_width=True, caption='Coverage of Copernicus DEM data')
-                plt.close()
+            pp = np.array(pp)
 
-        # st.write(f"Found {len(pnt_FR)} rasters included in the area")
-        if attributes_select is not None:
-            bounds =  features[features[attributes_select]==ft_selector].bounds
-        else:
-            bounds =  features.bounds
-        
-        offset_minx, offset_maxx, offset_miny, offset_maxy = 0,0,0,0
-        if bounds['minx'].values < np.min(pnt_FR['lon'].values):
-            offset_minx = 1
-        if bounds['maxx'].values > np.max(pnt_FR['lon'].values):
-            offset_maxx = 1
-        if bounds['miny'].values < np.min(pnt_FR['lat'].values):
-            offset_miny = 1
-        if bounds['maxy'].values > np.max(pnt_FR['lat'].values):
-            offset_maxy = 1
-        lats = list(range(np.min(pnt_FR['lat'].values)-offset_miny, np.max(pnt_FR['lat'].values)+offset_maxy+1))
-        lons = list(range(np.min(pnt_FR['lon'].values)-offset_minx, np.max(pnt_FR['lon'].values)+offset_maxx+1))
-        pp = []
-        for ll in lons:
-            for l in lats:
-                pp.append([ll,l])
-        pp = np.array(pp)
-        print(lons, lats)
-        print(pp)
-        print(pnt_FR['lon'].values, pnt_FR['lat'].values)
-        if attributes_select is not None:
-            shape = features[features[attributes_select]==ft_selector]['geometry']
-        else:
-            shape = features['geometry']
+            if attributes_select is not None:
+                shape = features[features[attributes_select]==ft_selector]['geometry']
+            else:
+                shape = features['geometry']
 
-        buf = BytesIO()
-        fig, ax = plt.subplots(figsize = (4,4))
-        ax.plot(pp[:,0], pp[:,1], 'o')
-        ax.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o')
-        shape.plot(ax=ax)
-        features.boundary.plot(ax = ax, linewidth=0.1, edgecolor="black", aspect = None)
+            buf = BytesIO()
+            ax2.plot(pp[:,0], pp[:,1], 'o', c = '#82C3F8')
+            ax2.plot(pnt_FR['lon'].values, pnt_FR['lat'].values, 'o', c = '#ED239D', mec = 'white')
+            if shapes_select != 'World countries' :
+                world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+                world.plot(ax=ax2, zorder=1, color ="#292A2E", alpha = 0.2)
+            features.plot(ax = ax2, linewidth=0.1, edgecolor = 'white', color="#292A2E", aspect = None, alpha = 1.0)
+            shape.plot(ax=ax2, color="#82C341")
+            if shapes_select == 'custom':
+                fov = 1
+            else:
+                fov = 3
+            xlim = ([bounds['minx'].values -fov, bounds['maxx'].values +fov])
+            ylim = ([bounds['miny'].values -fov, bounds['maxy'].values +fov])
 
-        xlim = ([bounds['minx'].values -3, bounds['maxx'].values +3])
-        ylim = ([bounds['miny'].values -3, bounds['maxy'].values +3])
-        print(bnds_shp)
-        ax.set_xlim(xlim)
-        ax.set_ylim(ylim)
-        plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
-        with col2:
-            with _lock:
-                st.image(buf, use_column_width=False, caption='localization of DEM data')
-        plt.close()
-        # download_option = st.sidebar.selectbox("Parallel download", ["No", "Yes"])
+            ax2.set_xlim(xlim)
+            ax2.set_ylim(ylim)
+            plt.savefig(buf, format="png", bbox_inches='tight', transparent = True, dpi=200)
+            
+            st.image(buf, use_column_width=False, caption='localization of DEM data')
+            plt.close()
 
         nb_raster = len(lats)*len(lons)
         
@@ -413,7 +415,6 @@ def st_ui():
         else:
             button = st.sidebar.button(f'Render DEM for your Geojson')
 
-        download_option = "No"
         if button:
             start = time.time()
 
@@ -423,77 +424,18 @@ def st_ui():
             args_list = []
             for l in lats:
                 for ll in lons:
-                    multe = 1
-                    multn = 1
-                    e = 'E'
-                    n = 'N'
-                    print(l, ll)
-                    if int(ll) < 0:
-                        e = 'W'
-                        multe = -1
-                    if int(l) < 0:
-                        n = 'S'
-                        multn = -1
-                    try:
-                        if download_option == "No":
-                            ttt = time.time()
-                            # file, data, crs, transform = copernicus_dem_download.get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution='90').value
-                            # src = create_dataset(data, crs, transform)
-                            
-                            file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
-                            src_files_to_mosaic.append(src)
-                            st.write(f"{file} retrieved in {round(time.time() - ttt, 2)} seconds")
-                        args_list.append({"lat": int(multn*int(l)), "n": n, "lon":int(multe*int(ll)), "e":e})
+                    multe, multn, e, n = 1, 1, 'E', 'N'
 
+                    if int(ll) < 0: e, multe = 'W', -1
+                    if int(l) < 0: n, multn = 'S', -1
+                    try:
+                        file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
+                        src_files_to_mosaic.append(src)
+                        ii += 1
                     except:
-                        st.write(f"Couldn't download raster at latitude {int(multn*int(l))}{n} / longitude {int(multe*int(ll))}{e}. File not found")
+                        ii += 1
                         continue
                     mybar.progress((ii+1)/(len(lats)*len(lons)))
-                    ii += 1
-            if  download_option == "Yes":
-                k = 0
-                chunk_size = 20
-                results = dict()
-                results["hjkhjk"] = None
-                chunks = len(args_list) // chunk_size
-                remainder = len(args_list) % chunk_size
-                for i in range((chunks)):
-                    tt = time.time()
-                    argg = args_list[k:k+chunk_size]
-                    k += chunk_size
-                    dbe = copernicus_dem_download.map(func="compute", args_list=argg)
-                
-                    dbe.start()
-                    with st.spinner("Starting process"):
-                        while None in dbe.value.values():
-                            time.sleep(1)
-                        none_nb = [1 for q in dbe.value.values() if q == None]
-                        st.write(len(none_nb))
-
-                    res = dbe.value
-                    st.write(time.time() - tt)
-                    results = {**results, **res}
-                # st.write(res)
-                argg = args_list[k:k+remainder]
-
-                dbe = copernicus_dem_download.map(func="compute", args_list=argg)
-                
-                dbe.start()
-                with st.spinner("Starting process"):
-                    while None in dbe.value.values():
-                        time.sleep(1)
-
-                res = dbe.value
-                # st.write(res)
-                results = {**results, **res}
-
-                # st.write(results)
-                for key, val in results.items():
-                    try:
-                        src = create_dataset(val[1], val[2], val[3])
-                        src_files_to_mosaic.append(src)
-                    except:
-                        continue
             
             with st.spinner("Rendering"):
                 mosaic, out_trans = merge(src_files_to_mosaic)
@@ -532,8 +474,6 @@ def st_ui():
             with open(tf.name, 'rb') as f:
                 to_return = f.read()
             
-            print(to_return)
-
             st.sidebar.download_button(label="Download this DEM", data=to_return, file_name='my_DEM.tif')
     except:
         points, pointInPolys, pnt_FR = get_dem_points_in_poly(np.array(lon_plot), np.array(lat_plot), features=None, attributes_select=None, ft_selector=None)
