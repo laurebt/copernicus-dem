@@ -29,6 +29,7 @@ import base64
 import os
 import uuid
 import pydaisi
+import progress
 from progress.bar import IncrementalBar
 os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
