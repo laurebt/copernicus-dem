@@ -271,7 +271,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
 
         with open(name, 'rb') as f:
             to_return = f.read()
-        sd.put_object("JM/DEM", to_return, "test.tiff")
+        sd.put_object("/JM/DEM", to_return, "test.tiff")
         os.remove(name)
         return "Your file can be downloaded here : https://app.daisi.io/shared-data"
 
