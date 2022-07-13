@@ -29,12 +29,13 @@ import base64
 import os
 import uuid
 import pydaisi
-import progress
-from progress.bar import IncrementalBar
+
 os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
 sd = SharedDataClient()
 folder = sd.Folder("/")
+
+from utils import progress
 
 
 _lock = RendererAgg.lock
@@ -215,7 +216,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     args_list = []
     ii = 0
     print(f"Will retrieve tentatively {len(lats)*len(lons)} rasters.")
-    bar = IncrementalBar('Countdown', max = len(lats)*len(lons))
+    total = len(lats)*len(lons)
     for l in lats:
         for ll in lons:
             multe, multn, e, n = 1, 1, 'E', 'N'
@@ -227,14 +228,17 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
                 file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
                 src_files_to_mosaic.append(src)
                 # print(ii, "Dowloaded")
-                bar.next()
+                ii += 1
+                progress(ii, total, f"Downloading {total} tiles")
+
+                
             except Exception as e:
                 # print(e)
                 # print(ii, "Couldn't download")
-                bar.next()
+                ii += 1
+                progress(ii, total, f"Downloading {total} tiles")
                 continue
-    bar.finish()
-    print(src_files_to_mosaic)
+
     mosaic, out_trans = merge(src_files_to_mosaic)
 
     print("Merge done")
@@ -251,12 +255,6 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     for s in src_files_to_mosaic:
         os.remove(s)
     
-    # out_dataset = create_dataset(out_image[0], src_files_to_mosaic[0].profile['crs'], out_transform)
-    # crs = src_files_to_mosaic[0].profile['crs']
-
-    # for s in src_files_to_mosaic:
-    #     s.close()
-
     if return_type == 'image':
         buf = BytesIO()
         data_top_plot = out_image[0,:,:]
@@ -268,11 +266,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
         return base64.b64encode(buf)
 
     else:
-        # out_ds = create_dataset(out_image[0],crs, out_transform)
-        # metadata = dict(**out_ds.profile)
-        # metadata.update(crs=metadata["crs"].to_wkt(), transform=list(metadata["transform"]))
 
-        # out_data = out_image[0]
         out_file = tempfile.NamedTemporaryFile()
 
         name = out_file.name + '.tiff'
@@ -293,7 +287,8 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
         shared_data_filename = uuid.uuid4().hex + '_' + pre_defined_shape[1] + '.tiff'
         sd.put_object("/JM/DEM", to_return, shared_data_filename)
         os.remove(name)
-        return "Your file can be downloaded here : https://app.daisi.io/shared-data"
+        print(f"{shared_data_filename} is ready for download")
+        return f"Your file {shared_data_filename} can be downloaded here : https://app.daisi.io/shared-data"
 
 def st_ui():
     st.set_page_config(layout = "wide")
