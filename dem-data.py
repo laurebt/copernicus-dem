@@ -154,12 +154,12 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
         bucket = 'copernicus-dem-30m'
 
     file_name = f'{name}/{name}.tif'
-    print(file_name)
+    # print(file_name)
     tf = tempfile.NamedTemporaryFile()
     
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name  + '.tiff') #, Filename=f'{name}.tif')
     # dataset= rasterio.open(tf.name)
-    print(tf.name)
+    # print(tf.name)
 
     return name + '.tif', tf.name + '.tiff'
 
@@ -227,16 +227,14 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
             try:
                 file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
                 src_files_to_mosaic.append(src)
-                # print(ii, "Dowloaded")
+                print(ii, f"Downloading tile : {file}")
                 ii += 1
-                progress(ii, total, f"Downloading {total} tiles")
 
                 
             except Exception as e:
                 # print(e)
-                # print(ii, "Couldn't download")
+                print(ii, f"Couldn't download tile {file}. File doesn't exist (probably an offshore area)")
                 ii += 1
-                progress(ii, total, f"Downloading {total} tiles")
                 continue
 
     mosaic, out_trans = merge(src_files_to_mosaic)
