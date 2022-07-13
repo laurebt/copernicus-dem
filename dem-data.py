@@ -170,6 +170,16 @@ def plt_locs(lon_plot, lat_plot, user_lon, user_lat):
 
     return fig
 
+def get_pre_defined_shp_list():
+
+    return list(shapefiles_dict.keys())
+
+def get_entities_names(shp):
+    attributes_select = shapefiles_dict[shp]['main attribute']
+
+    return attributes_select.values
+
+
 def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'Andorra'], resolution = '90', return_type = 'image'):
     lon_plot, lat_plot = load_lat_lon()
     if user_polygon is not None:
