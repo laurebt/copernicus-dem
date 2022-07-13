@@ -214,7 +214,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     args_list = []
     ii = 0
     print(f"Will retrieve tentatively {len(lats)*len(lons)} rasters.")
-    bar = IncrementalBar('Countdown', max = len(lats)*len(lons)
+    bar = IncrementalBar('Countdown', max = len(lats)*len(lons))
     for l in lats:
         for ll in lons:
             multe, multn, e, n = 1, 1, 'E', 'N'
