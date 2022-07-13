@@ -175,9 +175,12 @@ def get_pre_defined_shp_list():
     return list(shapefiles_dict.keys())
 
 def get_entities_names(shp):
+    features = gpd.read_file(shapefiles_dict[shp]['src'])
     attributes_select = shapefiles_dict[shp]['main attribute']
 
-    return attributes_select.values
+    
+
+    return features[attributes_select].values
 
 
 def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'Andorra'], resolution = '90', return_type = 'image'):
