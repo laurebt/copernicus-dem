@@ -29,6 +29,7 @@ import base64
 import os
 import uuid
 import pydaisi
+from progress.bar import IncrementalBar
 os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
 sd = SharedDataClient()
@@ -213,6 +214,7 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
     args_list = []
     ii = 0
     print(f"Will retrieve tentatively {len(lats)*len(lons)} rasters.")
+    bar = IncrementalBar('Countdown', max = len(lats)*len(lons)
     for l in lats:
         for ll in lons:
             multe, multn, e, n = 1, 1, 'E', 'N'
@@ -223,13 +225,14 @@ def retrieve_dem(user_polygon = None, pre_defined_shape = ['World countries', 'A
             try:
                 file, src = get_from_lat_long(lat=int(multn*int(l)),n=n,lon=int(multe*int(ll)), e=e, resolution=resolution)
                 src_files_to_mosaic.append(src)
-                print(ii, "Dowloaded")
-                ii +=1
+                # print(ii, "Dowloaded")
+                bar.next()
             except Exception as e:
-                print(e)
-                print(ii, "Couldn't download")
-                ii+=1
+                # print(e)
+                # print(ii, "Couldn't download")
+                bar.next()
                 continue
+    bar.finish()
     print(src_files_to_mosaic)
     mosaic, out_trans = merge(src_files_to_mosaic)
 
