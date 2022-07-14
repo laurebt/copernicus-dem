@@ -296,7 +296,7 @@ def retrieve_dem(user_polygon = None, attributes_select = None, pre_defined_shap
             to_return = f.read()
 
         shared_data_filename = uuid.uuid4().hex + '_' + pre_defined_shape[1] + '.tiff'
-        sd.put_object("/JM/DEM", to_return, shared_data_filename)
+        sd.put_object("/Copernicus_DEM_download", to_return, shared_data_filename)
         os.remove(name)
         print(f"{shared_data_filename} is ready for download")
         return f"Your file {shared_data_filename} can be downloaded here : https://app.daisi.io/shared-data"
