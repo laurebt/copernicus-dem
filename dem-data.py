@@ -30,7 +30,9 @@ import os
 import uuid
 import pydaisi
 from summary import get_summary
+import warnings
 
+warnings.filterwarnings("ignore")
 os.environ["DAISI_ACCESS_TOKEN"]="of3dEljHKUsPcGueYW9ijwgMAmTjWpc1"
 from pydaisi import SharedDataClient
 sd = SharedDataClient()
@@ -159,7 +161,7 @@ def get_from_lat_long(lat=0,n='N',lon=0, e='E', resolution='90'):
         bucket = 'copernicus-dem-30m'
 
     file_name = f'{name}/{name}.tif'
-    print(f"Downloading tile : {name}")
+    print(f"Retrieving tile : {name}")
     tf = tempfile.NamedTemporaryFile()
     
     s3.download_file(Bucket=bucket, Key=file_name, Filename = tf.name  + '.tiff') #, Filename=f'{name}.tif')
@@ -251,7 +253,7 @@ def retrieve_dem(user_polygon = None, attributes_select = None, pre_defined_shap
                 # print(ii, f"Couldn't download tile {file}. File doesn't exist (probably an offshore area)")
                 ii += 1
                 continue
-
+    print("Retrieving tiles done")
     mosaic, out_trans = merge(src_files_to_mosaic)
 
     print("Merge done")
