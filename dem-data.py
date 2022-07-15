@@ -203,6 +203,7 @@ def retrieve_dem(user_polygon = None, attributes_select = None, pre_defined_shap
             except:
                 attributes_select = None
                 ft_selector = None
+        bounds =  features.bounds
     else:
     
         features = gpd.read_file(shapefiles_dict[pre_defined_shape[0]]['src'])
