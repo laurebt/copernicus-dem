@@ -199,11 +199,12 @@ def retrieve_dem(user_polygon = None, attributes_select = None, pre_defined_shap
         if attributes != 'geometry':
             try:
                 ft_list =list(set(features[attributes_select].values))
-                ft_selector = st.sidebar.selectbox(f'Select a {attributes_select}', sorted(ft_list))
             except:
                 attributes_select = None
                 ft_selector = None
+        shape = features['geometry']
         bounds =  features.bounds
+        
     else:
     
         features = gpd.read_file(shapefiles_dict[pre_defined_shape[0]]['src'])
